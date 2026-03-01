@@ -218,11 +218,9 @@
     </div>
 
     <script>
-
-// JSONBin Configuration
-const BIN_URL = 'https://api.jsonbin.io/v3/b/69a3acd743b1c97be9a83122';
-const API_KEY = '$2a$10$z.0vVEGdMcN5po9LNgJoWOpNep.WRK/KKSpa1c6zAgAQxvDTrHU1m'; 
-
+        // --- JSONBin Configuration UPDATED ---
+        const BIN_URL = 'https://api.jsonbin.io/v3/b/69a3acd743b1c97be9a83122';
+        const API_KEY = '$2a$10$RZCd7csnTF0O6MbP9AfilO0v/j3/R8wFZTpB7.axDyzVwS5oTYr2W';
 
         // Initialize Lucide icons
         lucide.createIcons();
@@ -251,13 +249,9 @@ const API_KEY = '$2a$10$z.0vVEGdMcN5po9LNgJoWOpNep.WRK/KKSpa1c6zAgAQxvDTrHU1m';
             e.preventDefault();
             e.stopPropagation();
             
-            if (isMoving) {
-                console.log('Cannot toggle while moving');
-                return; // Prevent toggling while moving
-            }
+            if (isMoving) return; 
             
             isMenuOpen = !isMenuOpen;
-            console.log('Menu toggled:', isMenuOpen);
             
             if (isMenuOpen) {
                 destinationMenu.classList.add('expand-enter-active');
@@ -274,16 +268,10 @@ const API_KEY = '$2a$10$z.0vVEGdMcN5po9LNgJoWOpNep.WRK/KKSpa1c6zAgAQxvDTrHU1m';
             }
         });
 
-        // Send robot function - Live Fetch to JSONBin
+        // Send robot function
         window.sendRobot = async function(destination) {
-            console.log('sendRobot called with destination:', destination);
-            
-            if (isMoving) {
-                console.log('Robot is already moving, ignoring click');
-                return;
-            }
+            if (isMoving) return;
 
-            // Added 'code' property to match the Python bridge parsing
             const destinations = {
                 'OR': { name: 'Operating Room', color: 'red', icon: 'activity', code: 'O' },
                 'ER': { name: 'Emergency Room', color: 'amber', icon: 'siren', code: 'E' },
@@ -291,32 +279,23 @@ const API_KEY = '$2a$10$z.0vVEGdMcN5po9LNgJoWOpNep.WRK/KKSpa1c6zAgAQxvDTrHU1m';
             };
 
             const dest = destinations[destination];
-            
-            // Safety check
-            if (!dest) {
-                console.error('Invalid destination key:', destination);
-                alert('Error: Invalid destination selected');
-                return;
-            }
+            if (!dest) return;
             
             isMoving = true;
             currentDestination = dest.name;
 
-            // Close menu and update UI
             isMenuOpen = false;
             destinationMenu.classList.remove('expand-enter-active');
             toggleIcon.style.transform = 'rotate(0deg)';
             updateStatus('moving', dest.color);
             showToast('Deploying MediBot', `Transmitting command to bridge...`, 'blue');
 
-            // Payload for the cloud
             const payload = {
                 command: dest.code,
                 timestamp: Date.now()
             };
 
             try {
-                // Push the command to the cloud database
                 const response = await fetch(BIN_URL, {
                     method: 'PUT',
                     headers: {
@@ -389,7 +368,6 @@ const API_KEY = '$2a$10$z.0vVEGdMcN5po9LNgJoWOpNep.WRK/KKSpa1c6zAgAQxvDTrHU1m';
         function addLogEntry(message, type) {
             const entry = document.createElement('div');
             entry.className = 'flex items-start gap-3 text-sm text-slate-600 slide-in';
-            
             const dotColor = type === 'in-progress' ? 'bg-amber-500' : 'bg-green-500';
             const time = new Date().toLocaleTimeString();
             
@@ -400,7 +378,6 @@ const API_KEY = '$2a$10$z.0vVEGdMcN5po9LNgJoWOpNep.WRK/KKSpa1c6zAgAQxvDTrHU1m';
                     <p class="text-xs text-slate-500">${time}</p>
                 </div>
             `;
-            
             activityLog.insertBefore(entry, activityLog.firstChild);
         }
 
@@ -409,37 +386,27 @@ const API_KEY = '$2a$10$z.0vVEGdMcN5po9LNgJoWOpNep.WRK/KKSpa1c6zAgAQxvDTrHU1m';
             const toastTitle = document.getElementById('toast-title');
             const toastMessage = document.getElementById('toast-message');
             const toastIcon = document.getElementById('toast-icon');
-            
-            const colors = {
-                blue: 'bg-blue-500',
-                green: 'bg-green-500',
-                red: 'bg-red-500'
-            };
+            const colors = { blue: 'bg-blue-500', green: 'bg-green-500', red: 'bg-red-500' };
             
             toastTitle.textContent = title;
             toastMessage.textContent = message;
             toastIcon.className = `w-8 h-8 rounded-full ${colors[color]} flex items-center justify-center flex-shrink-0`;
             
             toast.classList.remove('translate-y-20', 'opacity-0');
-            
             setTimeout(() => {
                 toast.classList.add('translate-y-20', 'opacity-0');
             }, 3000);
         }
 
-        // Simulate battery drain
         setInterval(() => {
             const batteryEl = document.getElementById('battery-level');
             let current = parseInt(batteryEl.textContent);
             if (current > 20) {
                 batteryEl.textContent = (current - 1) + '%';
-                if (current < 30) {
-                    batteryEl.classList.add('text-red-600');
-                }
+                if (current < 30) batteryEl.classList.add('text-red-600');
             }
-        }, 30000); // Drop 1% every 30 seconds
+        }, 30000);
 
-        // Update uptime
         let minutes = 23;
         setInterval(() => {
             minutes++;
@@ -447,7 +414,6 @@ const API_KEY = '$2a$10$z.0vVEGdMcN5po9LNgJoWOpNep.WRK/KKSpa1c6zAgAQxvDTrHU1m';
             const mins = minutes % 60;
             document.getElementById('uptime').textContent = `${hours}h ${mins}m`;
         }, 60000);
-
     </script>
 </body>
 </html>
