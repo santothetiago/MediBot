@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediBot - Medical Robot Control</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .destination-btn {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .destination-btn:hover {
+            transform: translateY(-2px);
+        }
+        .expand-enter {
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .expand-enter-active {
+            max-height: 300px;
+            opacity: 1;
+        }
+        .pulse-ring {
+            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); opacity: 0.8; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+        .robot-move {
+            animation: move 0.5s ease-in-out infinite alternate;
+        }
+        @keyframes move {
+            0% { transform: translateX(-5px); }
+            100% { transform: translateX(5px); }
+        }
+        .slide-in {
+            animation: slideIn 0.3s ease-out forwards;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-100 to-blue-50 min-h-screen text-slate-800">
+
+    <header class="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-50">
+        <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="bg-blue-600 p-2 rounded-lg">
+                    <i data-lucide="bot" class="w-6 h-6 text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-slate-900">MediBot</h1>
+                    <p class="text-xs text-slate-500">Autonomous Medical Delivery System</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="relative flex h-3 w-3">
+                    <span id="connection-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span id="connection-dot" class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                </span>
+                <span id="connection-text" class="text-sm font-medium text-slate-600">Connected</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto px-4 py-8 space-y-6">
+
+        <div class="glass-panel rounded-2xl shadow-lg p-6 border border-slate-200">
+            <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                <div class="flex items-center gap-4">
+                    <div class="relative">
+                        <div class="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
+                            <i data-lucide="car" class="w-10 h-10 text-white" id="robot-icon"></i>
+                        </div>
+                        <div id="status-ring" class="absolute -inset-1 rounded-2xl border-2 border-blue-400 pulse-ring hidden"></div>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-900">MediBot Car-01</h2>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span id="status-badge" class="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 border border-green-200">
+                                Standby
+                            </span>
+                            <span class="text-sm text-slate-500">•</span>
+                            <span id="current-location" class="text-sm text-slate-600 font-medium">Base Station</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-4 w-full md:w-auto">
+                    <div class="bg-slate-50 rounded-xl p-3 text-center border border-slate-200">
+                        <i data-lucide="battery-medium" class="w-5 h-5 mx-auto mb-1 text-slate-600"></i>
+                        <p class="text-xs text-slate-500 uppercase tracking-wide">Battery</p>
+                        <p id="battery-level" class="text-lg font-bold text-slate-900">87%</p>
+                    </div>
+                    <div class="bg-slate-50 rounded-xl p-3 text-center border border-slate-200">
+                        <i data-lucide="signal" class="w-5 h-5 mx-auto mb-1 text-slate-600"></i>
+                        <p class="text-xs text-slate-500 uppercase tracking-wide">Signal</p>
+                        <p class="text-lg font-bold text-slate-900">Strong</p>
+                    </div>
+                    <div class="bg-slate-50 rounded-xl p-3 text-center border border-slate-200">
+                        <i data-lucide="clock" class="w-5 h-5 mx-auto mb-1 text-slate-600"></i>
+                        <p class="text-xs text-slate-500 uppercase tracking-wide">Uptime</p>
+                        <p id="uptime" class="text-lg font-bold text-slate-900">4h 23m</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass-panel rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
+            <div class="p-6 border-b border-slate-200 bg-gradient-to-r from-white to-slate-50">
+                <h3 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                    <i data-lucide="map-pin" class="w-5 h-5 text-blue-600"></i>
+                    Destination Control
+                </h3>
+                <p class="text-sm text-slate-500 mt-1">Select a destination for the robot to navigate to</p>
+            </div>
+
+            <div class="p-6 space-y-6">
+                <button id="destination-toggle" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-3 group">
+                    <i data-lucide="navigation" class="w-6 h-6 group-hover:rotate-45 transition-transform duration-300"></i>
+                    <span id="toggle-text">Send to Location</span>
+                    <i data-lucide="chevron-down" id="toggle-icon" class="w-5 h-5 transition-transform duration-300"></i>
+                </button>
+
+                <div id="destination-menu" class="expand-enter grid grid-cols-1 md:grid-cols-3 gap-4" style="pointer-events: none;">
+                    
+                    <button onclick="event.stopPropagation(); window.sendRobot('OR'); return false;" class="destination-btn bg-white hover:bg-red-50 border-2 border-slate-200 hover:border-red-400 rounded-xl p-6 text-left group relative overflow-hidden" style="pointer-events: auto;">
+                        <div class="absolute top-0 right-0 w-24 h-24 bg-red-100 rounded-full -mr-8 -mt-8 opacity-0 group-hover:opacity-50 transition-opacity duration-300"></div>
+                        <div class="relative z-10">
+                            <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mb-3 group-hover:bg-red-200 transition-colors">
+                                <i data-lucide="activity" class="w-6 h-6 text-red-600"></i>
+                            </div>
+                            <h4 class="font-bold text-slate-900 mb-1">Operating Room</h4>
+                            <p class="text-xs text-slate-500 font-medium">Surgical Suite</p>
+                            <div class="mt-3 flex items-center gap-1 text-xs text-red-600 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                                <span>Deploy Here</span>
+                                <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                            </div>
+                        </div>
+                    </button>
+
+                    <button onclick="event.stopPropagation(); window.sendRobot('ER'); return false;" class="destination-btn bg-white hover:bg-amber-50 border-2 border-slate-200 hover:border-amber-400 rounded-xl p-6 text-left group relative overflow-hidden" style="pointer-events: auto;">
+                        <div class="absolute top-0 right-0 w-24 h-24 bg-amber-100 rounded-full -mr-8 -mt-8 opacity-0 group-hover:opacity-50 transition-opacity duration-300"></div>
+                        <div class="relative z-10">
+                            <div class="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center mb-3 group-hover:bg-amber-200 transition-colors">
+                                <i data-lucide="siren" class="w-6 h-6 text-amber-600"></i>
+                            </div>
+                            <h4 class="font-bold text-slate-900 mb-1">Emergency Room</h4>
+                            <p class="text-xs text-slate-500 font-medium">ER Department</p>
+                            <div class="mt-3 flex items-center gap-1 text-xs text-amber-600 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                                <span>Deploy Here</span>
+                                <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                            </div>
+                        </div>
+                    </button>
+
+                    <button onclick="event.stopPropagation(); window.sendRobot('WARD'); return false;" class="destination-btn bg-white hover:bg-emerald-50 border-2 border-slate-200 hover:border-emerald-400 rounded-xl p-6 text-left group relative overflow-hidden" style="pointer-events: auto;">
+                        <div class="absolute top-0 right-0 w-24 h-24 bg-emerald-100 rounded-full -mr-8 -mt-8 opacity-0 group-hover:opacity-50 transition-opacity duration-300"></div>
+                        <div class="relative z-10">
+                            <div class="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center mb-3 group-hover:bg-emerald-200 transition-colors">
+                                <i data-lucide="bed" class="w-6 h-6 text-emerald-600"></i>
+                            </div>
+                            <h4 class="font-bold text-slate-900 mb-1">Patient Ward</h4>
+                            <p class="text-xs text-slate-500 font-medium">General Ward</p>
+                            <div class="mt-3 flex items-center gap-1 text-xs text-emerald-600 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                                <span>Deploy Here</span>
+                                <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                            </div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass-panel rounded-2xl shadow-lg border border-slate-200 p-6">
+            <h3 class="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                <i data-lucide="history" class="w-5 h-5 text-slate-600"></i>
+                Activity Log
+            </h3>
+            <div id="activity-log" class="space-y-3 max-h-64 overflow-y-auto">
+                <div class="flex items-start gap-3 text-sm text-slate-600 slide-in">
+                    <div class="w-2 h-2 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
+                    <div>
+                        <p class="font-medium text-slate-900">System initialized</p>
+                        <p class="text-xs text-slate-500">MediBot connected and ready • <span id="init-time"></span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <div id="toast" class="fixed bottom-6 right-6 transform translate-y-20 opacity-0 transition-all duration-300 z-50">
+        <div class="bg-slate-900 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3">
+            <div id="toast-icon" class="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+                <i data-lucide="check" class="w-5 h-5 text-white"></i>
+            </div>
+            <div>
+                <p id="toast-title" class="font-semibold">Command Sent</p>
+                <p id="toast-message" class="text-sm text-slate-300">Robot is moving to destination</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // JSONBin Configuration
+        const BIN_URL = 'https://api.jsonbin.io/v3/b/69a3acd743b1c97be9a83122';
+        const API_KEY = '$2a$10$RZCd7csnTF0O6MbP9AfilO0v/j3/R8wFZTpB7.axDyzVwS5oTYr2W';
+
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // State management
+        let isMenuOpen = false;
+        let isMoving = false;
+        let currentDestination = 'Base Station';
+
+        // DOM Elements
+        const toggleBtn = document.getElementById('destination-toggle');
+        const toggleIcon = document.getElementById('toggle-icon');
+        const toggleText = document.getElementById('toggle-text');
+        const destinationMenu = document.getElementById('destination-menu');
+        const statusBadge = document.getElementById('status-badge');
+        const statusRing = document.getElementById('status-ring');
+        const robotIcon = document.getElementById('robot-icon');
+        const currentLocation = document.getElementById('current-location');
+        const activityLog = document.getElementById('activity-log');
+
+        // Set init time
+        document.getElementById('init-time').textContent = new Date().toLocaleTimeString();
+
+        // Toggle destination menu
+        toggleBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            if (isMoving) {
+                console.log('Cannot toggle while moving');
+                return; // Prevent toggling while moving
+            }
+            
+            isMenuOpen = !isMenuOpen;
+            console.log('Menu toggled:', isMenuOpen);
+            
+            if (isMenuOpen) {
+                destinationMenu.classList.add('expand-enter-active');
+                destinationMenu.style.pointerEvents = 'auto';
+                toggleIcon.style.transform = 'rotate(180deg)';
+                toggleText.textContent = 'Select Destination Below';
+                toggleBtn.classList.add('bg-blue-700');
+            } else {
+                destinationMenu.classList.remove('expand-enter-active');
+                destinationMenu.style.pointerEvents = 'none';
+                toggleIcon.style.transform = 'rotate(0deg)';
+                toggleText.textContent = 'Send to Location';
+                toggleBtn.classList.remove('bg-blue-700');
+            }
+        });
+
+        // Send robot function - Live Fetch to JSONBin
+        window.sendRobot = async function(destination) {
+            console.log('sendRobot called with destination:', destination);
+            
+            if (isMoving) {
+                console.log('Robot is already moving, ignoring click');
+                return;
+            }
+
+            // Added 'code' property to match the Python bridge parsing
+            const destinations = {
+                'OR': { name: 'Operating Room', color: 'red', icon: 'activity', code: 'O' },
+                'ER': { name: 'Emergency Room', color: 'amber', icon: 'siren', code: 'E' },
+                'WARD': { name: 'Patient Ward', color: 'emerald', icon: 'bed', code: 'W' }
+            };
+
+            const dest = destinations[destination];
+            
+            // Safety check
+            if (!dest) {
+                console.error('Invalid destination key:', destination);
+                alert('Error: Invalid destination selected');
+                return;
+            }
+            
+            isMoving = true;
+            currentDestination = dest.name;
+
+            // Close menu and update UI
+            isMenuOpen = false;
+            destinationMenu.classList.remove('expand-enter-active');
+            toggleIcon.style.transform = 'rotate(0deg)';
+            updateStatus('moving', dest.color);
+            showToast('Deploying MediBot', `Transmitting command to bridge...`, 'blue');
+
+            // Payload for the cloud
+            const payload = {
+                command: dest.code,
+                timestamp: Date.now()
+            };
+
+            try {
+                // Push the command to the cloud database
+                const response = await fetch(BIN_URL, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Master-Key': API_KEY 
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) throw new Error('Network response was not ok');
+                
+                addLogEntry(`Command sent to cloud: ${dest.name}`, 'in-progress');
+
+                // Simulate travel time for the UI
+                setTimeout(() => {
+                    isMoving = false;
+                    updateStatus('arrived', dest.color);
+                    currentLocation.textContent = dest.name;
+                    showToast('Destination Reached', `MediBot arrived at ${dest.name}`, 'green');
+                    addLogEntry(`Arrived at ${dest.name}`, 'completed');
+                    
+                    setTimeout(() => {
+                        updateStatus('standby', dest.color);
+                        toggleText.textContent = 'Send to New Location';
+                    }, 2000);
+                    
+                }, 5000); 
+
+            } catch (error) {
+                console.error('Error sending command:', error);
+                showToast('Connection Error', 'Failed to reach cloud database.', 'red');
+                isMoving = false;
+                updateStatus('standby', 'blue');
+            }
+        }
+
+        function updateStatus(status, colorTheme) {
+            const colors = {
+                blue: { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200' },
+                red: { bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-200' },
+                amber: { bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-200' },
+                emerald: { bg: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-200' },
+                green: { bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-200' }
+            };
+
+            const theme = colors[colorTheme] || colors.blue;
+
+            if (status === 'moving') {
+                statusBadge.className = `px-3 py-1 rounded-full text-xs font-semibold ${theme.bg} ${theme.text} border ${theme.border}`;
+                statusBadge.textContent = 'Moving...';
+                statusRing.classList.remove('hidden');
+                robotIcon.classList.add('robot-move');
+                toggleBtn.disabled = true;
+                toggleBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            } else if (status === 'arrived') {
+                statusBadge.className = `px-3 py-1 rounded-full text-xs font-semibold ${theme.bg} ${theme.text} border ${theme.border}`;
+                statusBadge.textContent = 'At Destination';
+                statusRing.classList.add('hidden');
+                robotIcon.classList.remove('robot-move');
+            } else if (status === 'standby') {
+                statusBadge.className = 'px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 border border-green-200';
+                statusBadge.textContent = 'Standby';
+                statusRing.classList.add('hidden');
+                robotIcon.classList.remove('robot-move');
+                toggleBtn.disabled = false;
+                toggleBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        }
+
+        function addLogEntry(message, type) {
+            const entry = document.createElement('div');
+            entry.className = 'flex items-start gap-3 text-sm text-slate-600 slide-in';
+            
+            const dotColor = type === 'in-progress' ? 'bg-amber-500' : 'bg-green-500';
+            const time = new Date().toLocaleTimeString();
+            
+            entry.innerHTML = `
+                <div class="w-2 h-2 rounded-full ${dotColor} mt-2 flex-shrink-0"></div>
+                <div>
+                    <p class="font-medium text-slate-900">${message}</p>
+                    <p class="text-xs text-slate-500">${time}</p>
+                </div>
+            `;
+            
+            activityLog.insertBefore(entry, activityLog.firstChild);
+        }
+
+        function showToast(title, message, color) {
+            const toast = document.getElementById('toast');
+            const toastTitle = document.getElementById('toast-title');
+            const toastMessage = document.getElementById('toast-message');
+            const toastIcon = document.getElementById('toast-icon');
+            
+            const colors = {
+                blue: 'bg-blue-500',
+                green: 'bg-green-500',
+                red: 'bg-red-500'
+            };
+            
+            toastTitle.textContent = title;
+            toastMessage.textContent = message;
+            toastIcon.className = `w-8 h-8 rounded-full ${colors[color]} flex items-center justify-center flex-shrink-0`;
+            
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        // Simulate battery drain
+        setInterval(() => {
+            const batteryEl = document.getElementById('battery-level');
+            let current = parseInt(batteryEl.textContent);
+            if (current > 20) {
+                batteryEl.textContent = (current - 1) + '%';
+                if (current < 30) {
+                    batteryEl.classList.add('text-red-600');
+                }
+            }
+        }, 30000); // Drop 1% every 30 seconds
+
+        // Update uptime
+        let minutes = 23;
+        setInterval(() => {
+            minutes++;
+            const hours = Math.floor(minutes / 60);
+            const mins = minutes % 60;
+            document.getElementById('uptime').textContent = `${hours}h ${mins}m`;
+        }, 60000);
+
+    </script>
+</body>
+</html>
